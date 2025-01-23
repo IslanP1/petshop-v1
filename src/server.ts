@@ -120,6 +120,24 @@ server.put("/pets/:id", checkExistsUserAccount, (req: Request, res: Response) =>
     return;
 });
 
+//atualizar status de vacinação
+server.patch("/pets/:id/vaccinated", checkExistsUserAccount, (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const pet = req.petshop.pets.find((pet) => pet.id === id);
+
+    if (!pet) {
+        res.status(404).json({ message: "Pet não encontrado!" })
+        return;
+    }
+
+    pet.vacinated = !pet.vacinated;
+
+    res.status(200).json({ pet, message: "Status de vacinação atualizado com sucesso!" });
+    return;
+})
+
+
 server.listen("3000", () =>
     console.log("server online on port 3000")
 );
