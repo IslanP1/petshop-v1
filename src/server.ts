@@ -1,8 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
 import { v4 as uuid } from "uuid";
 import cors from "cors";
-import { error } from "console";
-import { json } from "stream/consumers";
 
 let petShops: PetShop[] = [];
 
@@ -24,8 +22,10 @@ function checkExistsUserAccount(req: Request, res: Response, next: NextFunction)
     // Adiciona o petshop no objeto da requisição para usar na rota
     req.petshop = petshop;
     next();
+    return;
 }
 
+// Middleware para verificar se o petshop é igual
 function checkUsersEquals(req: Request, res: Response, next: NextFunction) {
     const cnpj = req.body.cnpj;
     const verificaPetshop = petShops.find((petshop) => petshop.cnpj === cnpj);
@@ -37,17 +37,19 @@ function checkUsersEquals(req: Request, res: Response, next: NextFunction) {
     
     req.petshop = req.body;
     next();
+    return;
 }
 
+// Middleware para validar o cnpj
 function validateCNPJ(req: Request, res: Response, next: NextFunction) {
     const cnpj = req.body.cnpj;
-    console.log(cnpj)
     const regex =  /^\d{2}\.\d{3}\.\d{3}\/0001-\d{2}$/;
     const validacao = regex.test(cnpj);
 
     if (validacao) {
         req.body.cnpj = cnpj;
         next();
+        return;
     }
 
     res.status(400).json({ error: "CNPJ inválido!" })
@@ -66,42 +68,35 @@ server.post("/petshops", checkUsersEquals, validateCNPJ, (req: Request, res: Res
     };
 
     petShops.push(petshop);
-    res.status(201).json({ petshop})
+    res.status(201).json({ petshop });
     return;
 });
 
-//listar petshops
+//listar pets
 server.get("/pets", checkExistsUserAccount, (req: Request, res: Response) => {
     res.status(200).json(petShops.map(petshop => petshop.pets));
     return;
 });
 
 //criar pet
-server.post("/petshop/:id/pet", (req: Request, res: Response) => {
-    const petshopId = req.params.id;
+server.post("/pets", checkExistsUserAccount, (req: Request, res: Response) => {
     const data = req.body as Pet;
+    const petshopIndex = petShops.find((petshop) => petshop.cnpj === req.petshop.cnpj);
 
-    const petshopIndex = petShops.find((petshop) => petshop.id === petshopId);
-
-    if (petshopIndex) {
-        const pet = {
-            id: uuid(),
-            name: data.name,
-            type: data.type,
-            description: data.description,
-            vacinated: data.vacinated,
-            deadline_vacination: data.deadline_vacination,
-            created_at: new Date(),
-        };
-
-        petshopIndex.pets.push(pet);
-        res.status(201).json({ message: "Pet criado com sucesso!" });
-    } else {
-        res.status(404).json({ message: "Petshop não encontrado!" });
+    const pet = {
+        id: uuid(),
+        name: data.name,
+        type: data.type,
+        description: data.description,
+        vacinated: false,
+        deadline_vacination: data.deadline_vacination,
+        created_at: new Date(),
     }
+
+    petshopIndex?.pets.push(pet);
+    res.status(201).json({pet, message: 'Pet criado com sucesso!'})
+    return;
 });
-
-
 
 //atualizar petshop
 server.put("/petshop/:id", (req: Request, res: Response) => {
