@@ -81,6 +81,7 @@ server.get("/pets", checkExistsUserAccount, (req: Request, res: Response) => {
 //criar pet
 server.post("/pets", checkExistsUserAccount, (req: Request, res: Response) => {
     const data = req.body as Pet;
+    
     const petshopIndex = petShops.find((petshop) => petshop.cnpj === req.petshop.cnpj);
 
     const pet = {
@@ -98,27 +99,26 @@ server.post("/pets", checkExistsUserAccount, (req: Request, res: Response) => {
     return;
 });
 
-//atualizar petshop
-server.put("/petshop/:id", (req: Request, res: Response) => {
-    const petshopId = req.params.id;
-
-    const petshopIndex = petShops.find((petshop) => petshop.id === petshopId);
-
-    if (petshopIndex) {
-        petshopIndex.name = req.body.name;
-        petshopIndex.cnpj = req.body.cnpj;
-        res.status(200).json({ message: "Petshop atualizado com sucesso!" });
-    } else {
-        res.status(404).json({ message: "Petshop não encontrado!" });
-    };
-});
-
 //atualizar pet
-server.put("/petshop/:id/pet/:id-pet", (req: Request, res: Response) => {
-    const petshopId = req.params.id;
-})
+server.put("/pets/:id", checkExistsUserAccount, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { name, type, description, deadline_vacination } = req.body;
 
+    const pet = req.petshop.pets.find((pet) => pet.id === id);
 
+    if (!pet) {
+        res.status(404).json({ message: "Pet não encontrado!" })
+        return;
+    }
+
+    pet.name = name || pet.name;
+    pet.type = type || pet.type;
+    pet.description = description || pet.description;
+    pet.deadline_vacination = deadline_vacination || pet.deadline_vacination;
+
+    res.status(200).json({ pet, message: "Pet atualizado com sucesso!" });
+    return;
+});
 
 server.listen("3000", () =>
     console.log("server online on port 3000")
